@@ -1141,6 +1141,15 @@ impl GitRepository for FakeGitRepository {
         })
     }
 
+    fn merge_branch(&self, branch_name: String) -> BoxFuture<'_, Result<()>> {
+        self.with_state_async(true, move |state| {
+            if !state.branches.contains(&branch_name) {
+                bail!("merge: {branch_name} - not something we can merge");
+            }
+            Ok(())
+        })
+    }
+
     fn blame(
         &self,
         path: RepoPath,

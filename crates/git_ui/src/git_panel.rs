@@ -395,6 +395,8 @@ fn git_panel_context_menu(
             })
             .action_disabled_when(!has_stash_items, "Stash Pop", StashPop.boxed_clone())
             .action("View Stash", zed_actions::git::ViewStash.boxed_clone())
+            .separator()
+            .action("Merge Branch", git::Merge.boxed_clone())
             .when(include_copy_paths, |context_menu| {
                 context_menu
                     .separator()
@@ -5273,6 +5275,64 @@ impl GitPanel {
                 }
             })?;
 
+            anyhow::Ok(())
+        })
+        .detach_and_log_err(cx);
+    }
+
+    pub(crate) fn merge(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(repository) = self.active_repository.clone() else {
+            return;
+        };
+        let selected_branch = repository
+            .read(cx)
+            .branch
+            .as_ref()
+            .map(|branch| branch.name().to_owned().into());
+        let this = cx.weak_entity();
+        let on_select: branch_picker::SelectBranchCallback = Arc::new(move |branch, window, cx| {
+            let branch_name = branch.name().to_owned();
+            this.update(cx, |this, cx| {
+                this.merge_branch(branch_name, window, cx);
+            })
+            .ok();
+        });
+        let workspace = self.workspace.clone();
+        // Workspace actions call this while the workspace is being updated, so
+        // the modal opens once that update has finished.
+        window.defer(cx, move |window, cx| {
+            let workspace_handle = workspace.clone();
+            workspace
+                .update(cx, |workspace, cx| {
+                    workspace.toggle_modal(window, cx, |window, cx| {
+                        branch_picker::select_modal(
+                            workspace_handle,
+                            Some(repository),
+                            selected_branch,
+                            on_select,
+                            window,
+                            cx,
+                        )
+                    });
+                })
+                .ok();
+        });
+    }
+
+    fn merge_branch(&mut self, branch_name: String, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(repo) = self.active_repository.clone() else {
+            return;
+        };
+        let merge = repo.update(cx, |repo, _| repo.merge_branch(branch_name));
+        cx.spawn_in(window, async move |this, cx| {
+            let result = merge
+                .await
+                .context("Merge job was cancelled")
+                .and_then(|result| result);
+            if let Err(e) = result {
+                this.update(cx, |this, cx| this.show_error_toast("merge", e, cx))
+                    .ok();
+            }
             anyhow::Ok(())
         })
         .detach_and_log_err(cx);

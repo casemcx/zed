@@ -111,6 +111,8 @@ actions!(
         Fetch,
         /// Fetches changes from a specific remote.
         FetchFrom,
+        /// Merges a branch into the current branch.
+        Merge,
         /// Creates a new commit with staged changes.
         Commit,
         /// Runs the next commit with `git commit --no-verify`.

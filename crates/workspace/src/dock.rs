@@ -11,7 +11,7 @@ use gpui::{
     Action, Anchor, AnyView, App, Axis, Context, Entity, EntityId, EventEmitter, FocusHandle,
     Focusable, IntoElement, KeyContext, MouseButton, MouseDownEvent, MouseUpEvent, ParentElement,
     Render, SharedString, StyleRefinement, Styled, Subscription, WeakEntity, Window, deferred, div,
-    px,
+    px, rems,
 };
 use serde::{Deserialize, Serialize};
 use settings::{Settings, SettingsStore, TerminalDockPosition};
@@ -388,6 +388,7 @@ struct PanelEntry {
 
 pub struct PanelButtons {
     dock: Entity<Dock>,
+    vertical: bool,
     _settings_subscription: Subscription,
 }
 
@@ -1388,8 +1389,14 @@ impl PanelButtons {
         let settings_subscription = cx.observe_global::<SettingsStore>(|_, cx| cx.notify());
         Self {
             dock,
+            vertical: false,
             _settings_subscription: settings_subscription,
         }
+    }
+
+    pub fn vertical(mut self) -> Self {
+        self.vertical = true;
+        self
     }
 }
 
@@ -1400,13 +1407,22 @@ impl Render for PanelButtons {
         let is_open = dock.is_open;
         let dock_position = dock.position;
 
-        let (menu_anchor, menu_attach) = match dock.position {
-            DockPosition::Left => (Anchor::BottomLeft, Anchor::TopLeft),
-            DockPosition::Bottom | DockPosition::Right => (Anchor::BottomRight, Anchor::TopRight),
+        // In a vertical strip along the window edge, menus open to the side of
+        // the button rather than above it like they do in the status bar.
+        let (menu_anchor, menu_attach) = if self.vertical {
+            (Anchor::TopLeft, Anchor::TopRight)
+        } else {
+            match dock.position {
+                DockPosition::Left => (Anchor::BottomLeft, Anchor::TopLeft),
+                DockPosition::Bottom | DockPosition::Right => {
+                    (Anchor::BottomRight, Anchor::TopRight)
+                }
+            }
         };
 
         let dock_entity = self.dock.clone();
         let workspace = dock.workspace.clone();
+        let vertical = self.vertical;
         let mut buttons: Vec<_> = dock
             .panel_entries
             .iter()
@@ -1540,7 +1556,11 @@ impl Render for PanelButtons {
                             // Include active state in element ID to invalidate the cached
                             // tooltip when panel state changes (e.g., via keyboard shortcut)
                             let button = IconButton::new((name, is_active_button as u64), icon)
-                                .icon_size(IconSize::Small)
+                                .icon_size(if vertical {
+                                    IconSize::Custom(rems(1.25))
+                                } else {
+                                    IconSize::Small
+                                })
                                 .toggle_state(is_active_button)
                                 .tab_index(0isize)
                                 .aria_label(icon_tooltip)
@@ -1574,6 +1594,10 @@ impl Render for PanelButtons {
         }
 
         let has_buttons = !buttons.is_empty();
+
+        if self.vertical {
+            return v_flex().gap_4().items_center().children(buttons);
+        }
 
         h_flex()
             .gap_1()

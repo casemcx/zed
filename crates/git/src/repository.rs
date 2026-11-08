@@ -865,6 +865,9 @@ pub trait GitRepository: Send + Sync {
         force: bool,
     ) -> BoxFuture<'_, Result<()>>;
 
+    /// Merges the named branch into the currently checked out branch.
+    fn merge_branch(&self, branch_name: String) -> BoxFuture<'_, Result<()>>;
+
     fn worktrees(&self) -> BoxFuture<'_, Result<Vec<Worktree>>>;
 
     /// Returns the creation time of a linked worktree's git metadata
@@ -2487,6 +2490,22 @@ impl GitRepository for RealGitRepository {
                 let git_binary = git_binary?;
                 let flag = delete_branch_flag(is_remote, force);
                 git_binary.run(&["branch", flag, &name]).await?;
+                anyhow::Ok(())
+            })
+            .boxed()
+    }
+
+    fn merge_branch(&self, branch_name: String) -> BoxFuture<'_, Result<()>> {
+        let git_binary = self.git_binary_in_worktree();
+
+        self.executor
+            .spawn(async move {
+                let git_binary = git_binary?;
+                // `--no-edit` keeps the default merge commit message; without it
+                // git would spawn an editor that has no terminal to run in.
+                git_binary
+                    .run(&["merge", "--no-edit", &branch_name])
+                    .await?;
                 anyhow::Ok(())
             })
             .boxed()

@@ -253,6 +253,14 @@ pub fn init(cx: &mut App) {
                     panel.pull(true, window, cx);
                 });
             });
+            workspace.register_action(|workspace, _: &git::Merge, window, cx| {
+                let Some(panel) = workspace.panel::<git_panel::GitPanel>(cx) else {
+                    return;
+                };
+                panel.update(cx, |panel, cx| {
+                    panel.merge(window, cx);
+                });
+            });
         }
         workspace.register_action(|workspace, action: &git::StashAll, window, cx| {
             let Some(panel) = workspace.panel::<git_panel::GitPanel>(cx) else {
@@ -1213,6 +1221,8 @@ mod remote_button {
                         .action("Push", git::Push.boxed_clone())
                         .action("Push To", git::PushTo.boxed_clone())
                         .action("Force Push", git::ForcePush.boxed_clone())
+                        .separator()
+                        .action("Merge Branch", git::Merge.boxed_clone())
                 }))
             })
             .anchor(Anchor::TopRight)

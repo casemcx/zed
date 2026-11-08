@@ -501,6 +501,29 @@
     },
   },
   {
+    "context": "SearchPanel",
+    "use_key_equivalents": true,
+    "bindings": {
+      "alt-cmd-c": "search::ToggleCaseSensitive",
+      "alt-cmd-w": "search::ToggleWholeWord",
+      "alt-cmd-x": "search::ToggleRegex",
+      "cmd-shift-h": "search::ToggleReplace",
+      "alt-cmd-enter": "search::ReplaceAll",
+    },
+  },
+  {
+    "context": "SearchResults",
+    "use_key_equivalents": true,
+    "bindings": {
+      "left": "search_panel::CollapseSelectedEntry",
+      "right": "search_panel::ExpandSelectedEntry",
+      "space": "menu::Confirm",
+      "backspace": "search_panel::DismissSelected",
+      "delete": "search_panel::DismissSelected",
+      "cmd-shift-1": "search_panel::ReplaceSelected",
+    },
+  },
+  {
     "context": "ProjectSearchBar > Editor",
     "bindings": {
       "up": "search::PreviousHistoryQuery",
@@ -688,7 +711,7 @@
       "ctrl-0": "pane::ActivateLastItem",
       "ctrl--": "pane::GoBack",
       "ctrl-_": "pane::GoForward",
-      "cmd-shift-f": "pane::DeploySearch",
+      "cmd-shift-f": "search_panel::Deploy",
     },
   },
   {
@@ -744,8 +767,8 @@
       "ctrl-alt-)": "workspace::ResetOpenDocksSize",
       "ctrl-alt-_": ["workspace::DecreaseOpenDocksSize", { "px": 0 }],
       "ctrl-alt-+": ["workspace::IncreaseOpenDocksSize", { "px": 0 }],
-      "cmd-shift-f": "pane::DeploySearch",
-      "cmd-shift-h": ["pane::DeploySearch", { "replace_enabled": true }],
+      "cmd-shift-f": "search_panel::Deploy",
+      "cmd-shift-h": "search_panel::DeployReplace",
       "cmd-shift-t": "pane::ReopenClosedItem",
       "cmd-k cmd-p": "workspace::ReopenLastPicker",
       "cmd-k cmd-s": "zed::OpenKeymap",

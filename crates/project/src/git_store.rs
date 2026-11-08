@@ -9917,6 +9917,25 @@ impl Repository {
         )
     }
 
+    pub fn merge_branch(&mut self, branch_name: String) -> oneshot::Receiver<Result<()>> {
+        self.send_job(
+            "merge_branch",
+            Some(format!("git merge {branch_name}").into()),
+            move |repo, _cx| async move {
+                match repo {
+                    RepositoryState::Local(LocalRepositoryState { backend, .. }) => {
+                        backend.merge_branch(branch_name).await
+                    }
+                    RepositoryState::Remote(_) => {
+                        anyhow::bail!(
+                            "Merging branches is not supported over a collaboration connection"
+                        )
+                    }
+                }
+            },
+        )
+    }
+
     pub fn check_for_pushed_commits(&mut self) -> oneshot::Receiver<Result<Vec<SharedString>>> {
         let id = self.id;
         self.send_job(
